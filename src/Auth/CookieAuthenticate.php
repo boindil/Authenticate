@@ -1,7 +1,7 @@
 <?php
 namespace FOC\Authenticate\Auth;
 
-use Cake\Auth\BaseAuthenticate;
+use App\Auth\IHAAuthenticate;
 use Cake\Controller\ComponentRegistry;
 use Cake\Controller\Component\CookieComponent;
 use Cake\Event\Event;
@@ -35,7 +35,7 @@ use Cake\Routing\Router;
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  */
-class CookieAuthenticate extends BaseAuthenticate
+class CookieAuthenticate extends IHAAuthenticate
 {
 
     /**
@@ -58,7 +58,7 @@ class CookieAuthenticate extends BaseAuthenticate
         ]);
 
         $this->config($config);
-    }
+	}
 
     /**
      * Authenticates the identity contained in the cookie.  Will use the
@@ -79,32 +79,34 @@ class CookieAuthenticate extends BaseAuthenticate
             throw new \RuntimeException('CookieComponent is not loaded');
         }
 
-        $cookieConfig = $this->_config['cookie'];
-        $cookieName = $this->_config['cookie']['name'];
-        unset($cookieConfig['name']);
-        $this->_registry->Cookie->configKey($cookieName, $cookieConfig);
+		$cookieConfig = $this->_config['cookie'];
+		$cookieName = $this->_config['cookie']['name'];
+		unset($cookieConfig['name']);
+		$this->_registry->Cookie->configKey($cookieName, $cookieConfig);
 
-        $data = $this->_registry->Cookie->read($cookieName);
-        if (empty($data)) {
-            return false;
-        }
+		$data = $this->_registry->Cookie->read($cookieName);
+		if (empty($data)) {
+			return false;
+		}
 
-        extract($this->_config['fields']);
-        if (empty($data[$username]) || empty($data[$password])) {
-            return false;
-        }
+		extract($this->_config['fields']);
+		if (empty($data[$username]) || empty($data[$password])) {
+			return false;
+		}
 
-        $user = $this->_findUser($data[$username], $data[$password]);
-        if ($user) {
-            $request->session()->write(
-                $this->_registry->Auth->sessionKey,
-                $user
-            );
-            return $user;
-        }
+		if(isset($data[$ip]) && $data[$ip] == getenv('REMOTE_ADDR') || !isset($data[$ip]) || $data[$ip] == "" || $data[$ip] == null) {
+			$user = $this->_findUser($data[$username], $data[$password], ((isset($data[$ip]) && $data[$ip] != "" && $data[$ip] != null)?$data[$ip]:null));
+			if ($user) {
+				$request->session()->write(
+					$this->_registry->Auth->sessionKey,
+					$user
+				);
+				return $user;
+			}
+		}
 
-        return false;
-    }
+		return false;
+	}
 
     /**
      * Authenticate user
@@ -121,11 +123,10 @@ class CookieAuthenticate extends BaseAuthenticate
     /**
      * Called from AuthComponent::logout()
      *
-     * @param \Cake\Event\Event $event The dispatched Auth.logout event.
      * @param array $user User record.
      * @return void
      */
-    public function logout(Event $event, array $user)
+    public function logout(array $user)
     {
         $this->_registry->Cookie->delete($this->_config['cookie']['name']);
     }

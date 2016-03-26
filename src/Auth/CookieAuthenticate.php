@@ -71,14 +71,14 @@ class CookieAuthenticate extends IHAAuthenticate
      * @return mixed False on login failure. An array of User data on success.
      * @throws \RuntimeException If CookieComponent is not loaded.
      */
-    public function getUser(Request $request)
+    public function _getUser(Request $request)
     {
         if (!isset($this->_registry->Cookie) ||
         !$this->_registry->Cookie instanceof CookieComponent
         ) {
             throw new \RuntimeException('CookieComponent is not loaded');
         }
-
+		
         $cookieConfig = $this->_config['cookie'];
         $cookieName = $this->_config['cookie']['name'];
         unset($cookieConfig['name']);
@@ -117,7 +117,8 @@ class CookieAuthenticate extends IHAAuthenticate
      */
     public function authenticate(Request $request, Response $response)
     {
-        return $this->getUser($request);
+		$this->setRequest($request);
+        return $this->_getUser($request);
     }
 
     /**
